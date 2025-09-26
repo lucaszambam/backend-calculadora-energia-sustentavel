@@ -16,8 +16,18 @@ class ParametroApiController extends Controller
     {
         $incluirEf = (bool) $request->boolean('incluir_eficiencias', false);
 
+        $seg = $request->integer('ef_segmento');
+        $te  = $request->integer('ef_tipo_energia');
+        $ti  = $request->integer('ef_tipo_instalacao');
+
         if ($request->filled('id_cidade')) {
-            $param = Parametro::with($incluirEf ? ['eficiencias'] : [])
+            $param = Parametro::when($incluirEf, function($q) use ($seg,$te,$ti) {
+                    $q->with(['eficiencias' => function($qq) use ($seg,$te,$ti) {
+                        if ($seg) $qq->where('id_segmento', $seg);
+                        if ($te)  $qq->where('id_tipo_energia', $te);
+                        if ($ti)  $qq->where('id_tipo_instalacao', $ti);
+                    }]);
+                })
                 ->where('id_cidade', $request->id_cidade)
                 ->first();
 
@@ -27,7 +37,7 @@ class ParametroApiController extends Controller
 
             $cidade = Cidade::with('estado')->find($request->id_cidade);
             if ($cidade) {
-                return response()->json($this->payloadEstado($cidade->estado->id_estado, $incluirEf));
+                return response()->json($this->payloadEstado($cidade->estado->id_estado, $incluirEf, $seg,$te,$ti));
             }
 
             return response()->json($this->payloadNacional());
@@ -41,7 +51,13 @@ class ParametroApiController extends Controller
                             ->first();
 
                 if ($cidade) {
-                    $param = Parametro::with($incluirEf ? ['eficiencias'] : [])
+                    $param = Parametro::when($incluirEf, function($q) use ($seg,$te,$ti) {
+                            $q->with(['eficiencias' => function($qq) use ($seg,$te,$ti) {
+                                if ($seg) $qq->where('id_segmento', $seg);
+                                if ($te)  $qq->where('id_tipo_energia', $te);
+                                if ($ti)  $qq->where('id_tipo_instalacao', $ti);
+                            }]);
+                        })
                         ->where('id_cidade', $cidade->id_cidade)
                         ->first();
 
@@ -49,10 +65,10 @@ class ParametroApiController extends Controller
                         return response()->json($this->payloadCidade($param, $incluirEf));
                     }
 
-                    return response()->json($this->payloadEstado($estado->id_estado, $incluirEf));
+                    return response()->json($this->payloadEstado($estado->id_estado, $incluirEf, $seg,$te,$ti));
                 }
 
-                return response()->json($this->payloadEstado($estado->id_estado, $incluirEf));
+                return response()->json($this->payloadEstado($estado->id_estado, $incluirEf, $seg,$te,$ti));
             }
 
             return response()->json($this->payloadNacional());
@@ -65,17 +81,17 @@ class ParametroApiController extends Controller
     {
         return [
             'fonte' => 'cidade',
-            'id_parametro' => $p->id_parametro,
-            'id_cidade' => $p->id_cidade,
-            'tarifa_base' => (float) $p->tarifa_base,
+            'id_parametro'      => $p->id_parametro,
+            'id_cidade'         => $p->id_cidade,
+            'tarifa_base'       => (float) $p->tarifa_base,
             'taxa_distribuicao' => (float) $p->taxa_distribuicao,
-            'co2_por_kwh' => (float) $p->co2_por_kwh,
-            'eficiencias' => $incluirEf
+            'co2_por_kwh'       => (float) $p->co2_por_kwh,
+            'eficiencias'       => $incluirEf
                 ? $p->eficiencias->map(fn($ef) => [
-                    'id_segmento' => $ef->id_segmento,
-                    'id_tipo_energia' => $ef->id_tipo_energia,
+                    'id_segmento'        => $ef->id_segmento,
+                    'id_tipo_energia'    => $ef->id_tipo_energia,
                     'id_tipo_instalacao' => $ef->id_tipo_instalacao,
-                    'eficiencia_valor' => (float) $ef->eficiencia_valor
+                    'eficiencia_valor'   => (float) $ef->eficiencia_valor
                 ])->values()
                 : [],
             'atualizado_em' => optional($p->updated_at)->toDateTimeString(),
@@ -83,7 +99,7 @@ class ParametroApiController extends Controller
     }
 
 
-    private function payloadEstado(int $idEstado, bool $incluirEf): array
+    private function payloadEstado(int $idEstado, bool $incluirEf, ?int $seg=null, ?int $te=null, ?int $ti=null): array
     {
         $cidadeIds = Cidade::where('id_estado', $idEstado)->pluck('id_cidade');
 
@@ -98,22 +114,27 @@ class ParametroApiController extends Controller
         $ef = [];
         if ($incluirEf) {
             $ef = Eficiencia::whereIn('id_parametro', Parametro::whereIn('id_cidade', $cidadeIds)->pluck('id_parametro'))
-                ->select('id_segmento', DB::raw('AVG(eficiencia_valor) AS val'))
-                ->groupBy('id_segmento')
-                ->pluck('val','id_segmento')
-                ->map(fn($v)=>(float)$v)
-                ->toArray();
+                ->when($seg, fn($q)=>$q->where('id_segmento', $seg))
+                ->when($te,  fn($q)=>$q->where('id_tipo_energia', $te))
+                ->when($ti,  fn($q)=>$q->where('id_tipo_instalacao', $ti))
+                ->get(['id_segmento','id_tipo_energia','id_tipo_instalacao','eficiencia_valor'])
+                ->map(fn($e)=>[
+                    'id_segmento'        => (int) $e->id_segmento,
+                    'id_tipo_energia'    => (int) $e->id_tipo_energia,
+                    'id_tipo_instalacao' => (int) $e->id_tipo_instalacao,
+                    'eficiencia_valor'   => (float) $e->eficiencia_valor,
+                ])->values();
         }
 
         return [
             'fonte' => 'estado',
-            'id_parametro' => null,
-            'id_cidade' => null,
-            'tarifa_base' => (float) $m->tarifa_base,
+            'id_parametro'      => null,
+            'id_cidade'         => null,
+            'tarifa_base'       => (float) $m->tarifa_base,
             'taxa_distribuicao' => (float) $m->taxa_distribuicao,
-            'co2_por_kwh' => (float) $m->co2_por_kwh,
-            'eficiencias' => $incluirEf ? $ef : (object)[],
-            'atualizado_em' => null,
+            'co2_por_kwh'       => (float) $m->co2_por_kwh,
+            'eficiencias'       => $incluirEf ? $ef : [],
+            'atualizado_em'     => null,
         ];
     }
 
