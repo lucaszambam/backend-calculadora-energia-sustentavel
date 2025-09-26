@@ -75,7 +75,7 @@ class ParametroApiController extends Controller
                     'id_segmento' => $ef->id_segmento,
                     'id_tipo_energia' => $ef->id_tipo_energia,
                     'id_tipo_instalacao' => $ef->id_tipo_instalacao,
-                    'valor' => (float) $ef->eficiencia_valor
+                    'eficiencia_valor' => (float) $ef->eficiencia_valor
                 ])->values()
                 : [],
             'atualizado_em' => optional($p->updated_at)->toDateTimeString(),
