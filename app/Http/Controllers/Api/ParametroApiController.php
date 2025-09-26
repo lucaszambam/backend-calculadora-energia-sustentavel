@@ -70,10 +70,18 @@ class ParametroApiController extends Controller
             'tarifa_base' => (float) $p->tarifa_base,
             'taxa_distribuicao' => (float) $p->taxa_distribuicao,
             'co2_por_kwh' => (float) $p->co2_por_kwh,
-            'eficiencias' => $incluirEf ? $p->eficiencias->pluck('eficiencia_valor', 'id_segmento')->map(fn($v)=>(float)$v) : (object)[],
+            'eficiencias' => $incluirEf
+                ? $p->eficiencias->map(fn($ef) => [
+                    'id_segmento' => $ef->id_segmento,
+                    'id_tipo_energia' => $ef->id_tipo_energia,
+                    'id_tipo_instalacao' => $ef->id_tipo_instalacao,
+                    'valor' => (float) $ef->eficiencia_valor
+                ])->values()
+                : [],
             'atualizado_em' => optional($p->updated_at)->toDateTimeString(),
         ];
     }
+
 
     private function payloadEstado(int $idEstado, bool $incluirEf): array
     {

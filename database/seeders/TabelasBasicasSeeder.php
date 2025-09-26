@@ -62,12 +62,26 @@ class TabelasBasicasSeeder extends Seeder
         ]);
 
         // Eficiências por segmento (valores fictícios de exemplo)
-        DB::table('eficiencias')->insert([
-            ['id_parametro' => 1, 'id_segmento' => 1, 'eficiencia_valor' => 0.85],
-            ['id_parametro' => 1, 'id_segmento' => 2, 'eficiencia_valor' => 0.80],
-            ['id_parametro' => 1, 'id_segmento' => 3, 'eficiencia_valor' => 0.78],
-            ['id_parametro' => 1, 'id_segmento' => 4, 'eficiencia_valor' => 0.82],
-        ]);
+        $segmentos = [1,2,3,4]; // Residencial, Comercial, Industrial, Rural
+        $energias = [1,2]; // Solar, Eólica
+        $instalacoes = [1,2,3]; // Monofásico, Bifásico, Trifásico
+
+        $rows = [];
+        foreach ($segmentos as $seg) {
+            foreach ($energias as $ene) {
+                foreach ($instalacoes as $inst) {
+                    $rows[] = [
+                        'id_parametro' => 1,
+                        'id_segmento' => $seg,
+                        'id_tipo_energia' => $ene,
+                        'id_tipo_instalacao' => $inst,
+                        'eficiencia_valor' => 0.75 // valor padrão inicial
+                    ];
+                }
+            }
+        }
+
+        DB::table('eficiencias')->insert($rows);
 
         DB::table('administradores')->updateOrInsert(
             ['email' => 'admin@calc.com'],

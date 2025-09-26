@@ -9,7 +9,7 @@
 
     <div class="row">
       {{-- Coluna Tarifas --}}
-      <div class="col-md-6">
+      <div class="col-md-5">
         <fieldset class="mb-3 border p-3 rounded h-100">
           <legend class="float-none w-auto px-2 h6">Tarifas e CO₂</legend>
 
@@ -48,19 +48,41 @@
       </div>
 
       {{-- Coluna Eficiências --}}
-      <div class="col-md-6">
+      <div class="col-md-7">
         <fieldset class="mb-3 border p-3 rounded h-100">
-          <legend class="float-none w-auto px-2 h6">Eficiência por Segmento</legend>
-          <div class="row g-2">
-            @foreach($segmentos as $seg)
-              <div class="col-md-12">
-                <label class="form-label">{{ $seg->nome }} (0 a 1)</label>
-                <input name="eficiencias[{{ $loop->index }}][valor]" class="form-control"
-                       value="{{ old('eficiencias.'.$loop->index.'.valor') }}" required>
-                <input type="hidden" name="eficiencias[{{ $loop->index }}][id_segmento]" value="{{ $seg->id_segmento }}">
-              </div>
-            @endforeach
-          </div>
+          <legend class="float-none w-auto px-2 h6">Eficiências</legend>
+
+          @foreach($segmentos as $seg)
+            <h6 class="mt-3">{{ $seg->nome }}</h6>
+            <table class="table table-sm table-bordered align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Energia \ Instalação</th>
+                  @foreach($instalacoes as $inst)
+                    <th>{{ $inst->descricao }}</th>
+                  @endforeach
+                </tr>
+              </thead>
+              <tbody>
+                @foreach($energias as $ene)
+                  <tr>
+                    <td>{{ $ene->descricao }}</td>
+                    @foreach($instalacoes as $inst)
+                      <td>
+                        <input 
+                          type="number" step="0.01" min="0" max="1"
+                          class="form-control form-control-sm"
+                          name="eficiencias[{{ $seg->id_segmento }}][{{ $ene->id_tipo_energia }}][{{ $inst->id_tipo_instalacao }}]"
+                          value="{{ old("eficiencias.{$seg->id_segmento}.{$ene->id_tipo_energia}.{$inst->id_tipo_instalacao}") }}"
+                          required
+                        >
+                      </td>
+                    @endforeach
+                  </tr>
+                @endforeach
+              </tbody>
+            </table>
+          @endforeach
         </fieldset>
       </div>
     </div>

@@ -8,6 +8,8 @@ use App\Models\Estado;
 use App\Models\Parametro;
 use App\Models\Segmento;
 use App\Models\Eficiencia;
+use App\Models\TipoEnergia;
+use App\Models\TipoInstalacao;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -31,39 +33,37 @@ class ParametroController extends Controller
 
     public function create()
     {
-        $estados   = Estado::orderBy('nome')->get(['id_estado','nome','sigla']);
-        $segmentos = Segmento::orderBy('nome')->get(['id_segmento','nome']);
-        return view('admin.parametros.create', compact('estados','segmentos'));
+        $estados      = Estado::orderBy('sigla')->get(['id_estado','sigla','nome']);
+        $segmentos    = Segmento::orderBy('id_segmento')->get();
+        $energias     = TipoEnergia::orderBy('id_tipo_energia')->get();      
+        $instalacoes  = TipoInstalacao::orderBy('id_tipo_instalacao')->get();
+
+        return view('admin.parametros.create', compact('estados','segmentos','energias','instalacoes'));
     }
 
     public function store(Request $request)
     {
-        $request->validate([
-            'id_cidade'         => 'required|exists:cidades,id_cidade',
-            'tarifa_base'       => 'required|numeric|min:0',
-            'taxa_distribuicao' => 'required|numeric|min:0',
-            'co2_por_kwh'       => 'required|numeric|min:0',
-            'eficiencias'       => 'required|array',
-            'eficiencias.*.id_segmento' => 'required|exists:segmentos,id_segmento',
-            'eficiencias.*.valor'       => 'required|numeric|min:0|max:1',
-        ]);
+        $param = Parametro::create($request->only([
+            'id_cidade','tarifa_base','taxa_distribuicao','co2_por_kwh'
+        ]));
 
-        $param = Parametro::create([
-            'id_cidade'        => $request->id_cidade,
-            'tarifa_base'      => $request->tarifa_base,
-            'taxa_distribuicao'=> $request->taxa_distribuicao,
-            'co2_por_kwh'      => $request->co2_por_kwh,
-        ]);
-
-        foreach ($request->eficiencias as $ef) {
-            Eficiencia::create([
-                'id_parametro'  => $param->id_parametro,
-                'id_segmento'   => $ef['id_segmento'],
-                'eficiencia_valor' => $ef['valor'],
-            ]);
+        // Percorre a matriz de eficiências
+        foreach ($request->eficiencias as $id_segmento => $energias) {
+            foreach ($energias as $id_tipo_energia => $instalacoes) {
+                foreach ($instalacoes as $id_tipo_instalacao => $valor) {
+                    Eficiencia::create([
+                        'id_parametro'      => $param->id_parametro,
+                        'id_segmento'       => $id_segmento,
+                        'id_tipo_energia'   => $id_tipo_energia,
+                        'id_tipo_instalacao'=> $id_tipo_instalacao,
+                        'eficiencia_valor'  => $valor,
+                    ]);
+                }
+            }
         }
 
-        return redirect()->route('admin.parametros.index')->with('ok', 'Parâmetro e eficiências cadastrados com sucesso!');
+        return redirect()->route('admin.parametros.index')
+                        ->with('ok','Parâmetro cadastrado com sucesso!');
     }
 
     public function destroy($id)
@@ -76,28 +76,47 @@ class ParametroController extends Controller
 
     public function edit(int $id)
     {
-        $param = Parametro::with(['cidade.estado','eficiencias.segmento'])->findOrFail($id);
-        $segmentos = Segmento::orderBy('id_segmento')->get();
+        $param       = Parametro::with(['cidade.estado','eficiencias'])->findOrFail($id);
+        $segmentos   = Segmento::orderBy('id_segmento')->get();
+        $energias    = TipoEnergia::orderBy('id_tipo_energia')->get();
+        $instalacoes = TipoInstalacao::orderBy('id_tipo_instalacao')->get();
 
-        // Normaliza eficiências em array [id_segmento => valor]
-        $ef = $param->eficiencias->keyBy('id_segmento')->map->eficiencia_valor->toArray();
+        $ef = [];
+        foreach ($param->eficiencias as $e) {
+            $ef[$e->id_segmento][$e->id_tipo_energia][$e->id_tipo_instalacao] = $e->eficiencia_valor;
+        }
 
-        return view('admin.parametros.edit', compact('param','segmentos','ef'));
+        return view('admin.parametros.edit', compact('param','segmentos','energias','instalacoes','ef'));
     }
 
     public function update(Request $request, int $id)
     {
-        $data = $request->validate([
-            'tarifa_base'       => 'required|numeric|min:0',
-            'taxa_distribuicao' => 'required|numeric|min:0',
-            'co2_por_kwh'       => 'required|numeric|min:0',
-        ]);
-
         $param = Parametro::findOrFail($id);
-        $param->update($data);
 
-        return back()->with('ok', 'Parâmetros atualizados.');
+        $param->update($request->only([
+            'tarifa_base','taxa_distribuicao','co2_por_kwh'
+        ]));
+
+        Eficiencia::where('id_parametro',$param->id_parametro)->delete();
+
+        foreach ($request->eficiencias as $id_segmento => $energias) {
+            foreach ($energias as $id_tipo_energia => $instalacoes) {
+                foreach ($instalacoes as $id_tipo_instalacao => $valor) {
+                    Eficiencia::create([
+                        'id_parametro'      => $param->id_parametro,
+                        'id_segmento'       => $id_segmento,
+                        'id_tipo_energia'   => $id_tipo_energia,
+                        'id_tipo_instalacao'=> $id_tipo_instalacao,
+                        'eficiencia_valor'  => $valor,
+                    ]);
+                }
+            }
+        }
+
+        return redirect()->route('admin.parametros.index')
+                        ->with('ok','Parâmetro atualizado com sucesso!');
     }
+
 
     public function updateEficiencias(Request $request, int $id)
     {
