@@ -7,22 +7,20 @@ class StoreSimulacaoRequest extends FormRequest {
     public function authorize(): bool { return true; }
     public function rules(): array {
         return [
-            'consentimento' => 'required|boolean|in:1,true',
             'id_cidade' => 'required|integer|exists:cidades,id_cidade',
-            'id_tipo_energia' => 'required|integer|exists:tipos_energia,id_tipo_energia',
-            'id_tipo_instalacao' => 'required|integer|exists:tipos_instalacao,id_tipo_instalacao',
-            'id_segmento' => 'required|integer|exists:segmentos,id_segmento',
-            'id_parametro' => 'required|integer|exists:parametros,id_parametro',
-
-            'valor_conta_medio' => 'required|numeric|gt:0',
-            'consumo_kwh_estimado' => 'required|numeric|min:0',
-            'economia_reais' => 'required|numeric|min:0',
-            'economia_percentual' => 'required|numeric|min:0|max:100',
-            'co2_evitado' => 'required|numeric|min:0',
-
-            'nome_contato' => 'required|string|min:2',
-            'email_contato' => 'nullable|email|required_without:telefone_contato',
-            'telefone_contato' => 'nullable|string|required_without:email_contato',
+            'id_tipo_energia' => 'required|integer',
+            'id_tipo_instalacao' => 'required|integer',
+            'id_segmento' => 'required|integer',
+            'id_parametro' => 'nullable|integer|exists:parametros,id_parametro',
+            'valor_conta_medio' => 'required|numeric',
+            'consumo_kwh_estimado' => 'required|numeric',
+            'economia_reais' => 'required|numeric',
+            'economia_percentual' => 'required|numeric',
+            'co2_evitado' => 'required|numeric',
+            'nome_contato' => 'nullable|string|max:255',
+            'email_contato' => 'nullable|email|max:255',
+            'telefone_contato' => 'nullable|string|max:30',
+            'consentimento' => 'required|boolean'
         ];
     }
 

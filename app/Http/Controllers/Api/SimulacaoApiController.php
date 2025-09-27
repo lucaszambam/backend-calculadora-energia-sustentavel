@@ -11,9 +11,13 @@ class SimulacaoApiController extends Controller
 {
     public function store(StoreSimulacaoRequest $request)
     {
-        $ok = Parametro::where('id_parametro', $request->id_parametro)
-                       ->where('id_cidade', $request->id_cidade)
-                       ->exists();
+
+        $ok = true;
+        if ($request->id_parametro) {
+            $ok = Parametro::where('id_parametro', $request->id_parametro)
+                        ->where('id_cidade', $request->id_cidade)
+                        ->exists();
+        }
         if (!$ok) {
             return response()->json(['message' => 'Parâmetro não pertence à cidade informada.'], 422);
         }
