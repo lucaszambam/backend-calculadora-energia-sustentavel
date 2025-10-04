@@ -40,4 +40,18 @@ class SimulacaoController extends Controller
 
         return back()->with('ok', 'Status atualizado com sucesso.');
     }
+
+    public function show(int $id)
+    {
+        $simulacao = Simulacao::with([
+            'cidade.estado',
+            'segmento',
+            'tipoEnergia',
+            'tipoInstalacao',
+            'parametro'
+        ])->findOrFail($id);
+
+        return view('admin.simulacoes.show', compact('simulacao'));
+    }
+
 }

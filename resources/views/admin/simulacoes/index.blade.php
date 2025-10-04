@@ -45,7 +45,7 @@
 <table class="table table-sm align-middle">
   <thead><tr>
     <th>#</th><th>Data/Hora</th><th>Nome</th><th>Contato</th><th>Local</th>
-    <th>Segmento</th><th>Energia</th><th>R$ Médio</th><th>Economia R$</th><th>Economia %</th><th>Status</th><th>Ações</th>
+    <th>Segmento</th><th>Energia</th><th>Economia %</th><th>Status</th><th>Ações</th>
   </tr></thead>
   <tbody>
   @foreach($simulacoes as $s)
@@ -60,8 +60,6 @@
       <td>{{ $s->cidade->nome ?? '' }}/{{ $s->cidade->estado->sigla ?? '' }}</td>
       <td>{{ $s->segmento->nome ?? '' }}</td>
       <td>{{ $s->tipoEnergia->descricao ?? '' }}</td>
-      <td>R$ {{ number_format($s->valor_conta_medio,2,',','.') }}</td>
-      <td>R$ {{ number_format($s->economia_reais,2,',','.') }}</td>
       <td>{{ number_format($s->economia_percentual,1,',','.') }}%</td>
       <td><span class="badge text-bg-secondary">{{ $s->status_contato }}</span></td>
       <td>
@@ -73,6 +71,11 @@
             @endforeach
           </select>
           <button class="btn btn-sm btn-outline-primary">Atualizar</button>
+
+          <a href="{{ route('admin.simulacoes.show',$s->id_simulacao) }}" 
+            class="btn btn-sm btn-outline-secondary mt-1">
+            Visualizar
+          </a>
         </form>
       </td>
     </tr>

@@ -18,6 +18,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 
     Route::get('/simulacoes', [SimulacaoController::class, 'index'])->name('simulacoes.index');
     Route::patch('/simulacoes/{id}/status', [SimulacaoController::class, 'updateStatus'])->name('simulacoes.updateStatus');
+    Route::get('/simulacoes/{id}', [SimulacaoController::class, 'show'])->name('simulacoes.show');
 
     Route::get('/parametros', [ParametroController::class, 'index'])->name('parametros.index');
     Route::get('/parametros/create', [ParametroController::class, 'create'])->name('parametros.create');
